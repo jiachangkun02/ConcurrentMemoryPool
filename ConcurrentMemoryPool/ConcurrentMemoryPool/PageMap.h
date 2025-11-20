@@ -417,6 +417,4 @@ public:
 		
 	}
 };
-	void PreallocateMoreMemory()
-	{}
-};
+	
