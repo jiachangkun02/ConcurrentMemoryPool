@@ -5,50 +5,83 @@
 #include "PageMap.h"
 
 
-//µ¥ÀıÄ£Ê½
+//å•ä¾‹æ¨¡å¼
 class PageCache
 {
 public:
-	//Ìá¹©Ò»¸öÈ«¾Ö·ÃÎÊµã
+	//æä¾›ä¸€ä¸ªå…¨å±€è®¿é—®ç‚¹
 	static PageCache* GetInstance()
 	{
 		return &_sInst;
 	}
-	//»ñÈ¡Ò»¸ökÒ³µÄspan
+	//è·å–ä¸€ä¸ªké¡µçš„span
 	Span* NewSpan(size_t k);
 
-	//»ñÈ¡´Ó¶ÔÏóµ½spanµÄÓ³Éä
+	//è·å–ä»å¯¹è±¡åˆ°spançš„æ˜ å°„
 	Span* MapObjectToSpan(void* obj);
 	
-	//ÊÖ¶¯»ò¶¨ÆÚµ÷ÓÃ´Ëº¯ÊıÊÍ·Å¶àÓàÄÚ´æ
+	//æ‰‹åŠ¨æˆ–å®šæœŸè°ƒç”¨æ­¤å‡½æ•°é‡Šæ”¾å¤šä½™å†…å­˜
 	void Trim();
 
-	//ÊÍ·Å¿ÕÏĞµÄspan»Øµ½PageCache£¬²¢ºÏ²¢ÏàÁÚµÄspan
+	//é‡Šæ”¾ç©ºé—²çš„spanå›åˆ°PageCacheï¼Œå¹¶åˆå¹¶ç›¸é‚»çš„span
 	void ReleaseSpanToPageCache(Span* span);
 
-	std::mutex _pageMtx; //´óËø
+	std::mutex _pageMtx; //å¤§é”
 	
-	// »ñÈ¡µ±Ç°ÄÚ´æ³ØµÄÍ³¼ÆĞÅÏ¢
+	// è·å–å½“å‰å†…å­˜æ± çš„ç»Ÿè®¡ä¿¡æ¯
 	struct Stats {
-		size_t totalSystemAllocBytes = 0; // ÏòÏµÍ³ÉêÇëµÄ×Ü×Ö½Ú
-		size_t cachedSpanCount = 0;       // PageCache ÖĞ»º´æµÄ Span ×ÜÊı
-		size_t cachedPageCount = 0;       // PageCache ÖĞ»º´æµÄ Page ×ÜÊı
+		size_t totalSystemAllocBytes = 0; // å‘ç³»ç»Ÿç”³è¯·çš„æ€»å­—èŠ‚
+		size_t cachedSpanCount = 0;       // PageCache ä¸­ç¼“å­˜çš„ Span æ€»æ•°
+		size_t cachedPageCount = 0;       // PageCache ä¸­ç¼“å­˜çš„ Page æ€»æ•°
 	};
 
 	Stats GetStatistics();
 
-	// ÅäºÏ SystemAlloc Í³¼Æ£¬ĞèÒªĞŞ¸Ä PageCache ¼ÇÂ¼ SystemAlloc µÄµ÷ÓÃ
+	// é…åˆ SystemAlloc ç»Ÿè®¡ï¼Œéœ€è¦ä¿®æ”¹ PageCache è®°å½• SystemAlloc çš„è°ƒç”¨
 	std::atomic<size_t> _totalAllocBytes = { 0 };
 private:
 	SpanList _spanLists[NPAGES];
 	//std::unordered_map<PAGE_ID, Span*> _idSpanMap;
-	TCMalloc_PageMap1<32 - PAGE_SHIFT> _idSpanMap;
+
+	//TCMalloc_PageMap1<32 - PAGE_SHIFT> _idSpanMap;
+
+
+	static const int kPageShift = PAGE_SHIFT;
+
+
+#if INTPTR_MAX == INT64_MAX
+    // ================================
+    // 64 ä½è¿›ç¨‹ï¼šä½¿ç”¨ä¸‰å±‚ PageMap3
+    // ================================
+
+    // ä¸€èˆ¬ x86_64 æœ‰æ•ˆè™šæ‹Ÿåœ°å€æ˜¯ 48 bitï¼Œè¿™é‡Œç”¨ 48 åšä¸Šé™
+    static const int kAddressBits = 48;
+
+    // BITS è¡¨ç¤ºâ€œé¡µå·æ‰€å çš„ bit æ•°â€ï¼Œå³ (åœ°å€ä½æ•° - PAGE_SHIFT)
+    static const int kPageMapBits = kAddressBits - kPageShift;
+
+    // ç”¨ PageMap3 ç®¡ç† Span æ˜ å°„
+    TCMalloc_PageMap3<kPageMapBits> _idSpanMap;
+
+#elif INTPTR_MAX == INT32_MAX
+    // ================================
+    // 32 ä½è¿›ç¨‹ï¼šå¯ä»¥ç»§ç»­ç”¨ PageMap1
+    // ================================
+
+    // 32 ä½åœ°å€ç©ºé—´ï¼šBITS = 32 - PAGE_SHIFT
+    TCMalloc_PageMap1<32 - PAGE_SHIFT> _idSpanMap;
+
+#else
+    #error "Unsupported pointer size"
+#endif
+
+
 
 	ObjectPool<Span> _spanPool;
 	
-	PageCache() //¹¹Ôìº¯ÊıË½ÓĞ
+	PageCache() //æ„é€ å‡½æ•°ç§æœ‰
 	{}
-	PageCache(const PageCache&) = delete; //·À¿½±´
+	PageCache(const PageCache&) = delete; //é˜²æ‹·è´
 	
 
 	static PageCache _sInst;
