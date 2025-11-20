@@ -124,6 +124,13 @@ void maintenance_task() {
 
 
 
+<img width="1023" height="304" alt="image" src="https://github.com/user-attachments/assets/d4f887cd-7630-4955-b971-8e828a532a44" />
+
+<img width="1073" height="318" alt="image" src="https://github.com/user-attachments/assets/a8d6430c-5874-4857-a920-9ee1c9de5ea2" />
+
+<img width="1463" height="766" alt="image" src="https://github.com/user-attachments/assets/a26fd17d-3f66-4ae9-8f19-ab5fce672736" />
+
+
 ## 后记（Postscript）
 
 本项目对自研的并发内存池与标准 `malloc/free` 在多线程场景下进行了跨平台基准测试（Linux 64 位与 Windows 32 位，均为 Release 构建）。为了避免计时口径差异带来的误读，我们统一改用 `std::chrono::steady_clock` 统计毫秒级耗时，并确保两侧“线程数 / 轮次 / 每轮次数”完全一致后再对比。
